@@ -1,0 +1,7 @@
+domain: give-me-dns.net
+ttl: 48h
+idlen: 60
+dns_addr: "::"
+dns_port: 5354
+net_addr: "::"
+net_port: 9999

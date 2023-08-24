@@ -1,11 +1,28 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"log"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 )
 
 func main() {
-	fmt.Printf("Starting give-me-dns...")
-	Init(os.Args[1])
+	var wg2 sync.WaitGroup
+	wg := &wg2
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	wg.Add(2)
+
+	log.Printf("Starting give-me-dns...\n")
+	cleanup, err := Init(ctx, wg, os.Args[1])
+	if err != nil {
+		log.Fatalln(err)
+	}
+	wg.Wait()
+	defer cleanup()
 }

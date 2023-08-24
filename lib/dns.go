@@ -1,10 +1,12 @@
 package lib
 
 import (
+	"context"
 	"fmt"
 	"github.com/miekg/dns"
 	"log"
 	"strconv"
+	"sync"
 )
 
 func parseDNSQuery(m *dns.Msg, store *Store) {
@@ -44,7 +46,7 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg, store *Store) {
 	w.WriteMsg(m)
 }
 
-func ProvideDNS(config *Config, store *Store) error {
+func ProvideDNS(config *Config, store *Store, ctx context.Context, wg *sync.WaitGroup) error {
 	// attach request handler func
 	dns.HandleFunc(config.Domain+".", func(w dns.ResponseWriter, r *dns.Msg) {
 		handleDnsRequest(w, r, store)
@@ -52,12 +54,19 @@ func ProvideDNS(config *Config, store *Store) error {
 
 	// start server
 	server := &dns.Server{Addr: config.DNSAddress + ":" + strconv.Itoa(int(config.DNSPort)), Net: "udp"}
-	err := server.ListenAndServe()
-	defer server.Shutdown()
-	if err != nil {
-		log.Fatalf("Failed to start server: %s\n ", err.Error())
-		return err
-	}
+
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			fmt.Printf("err")
+		}
+		defer wg.Done()
+	}()
+
+	go func() {
+		<-ctx.Done()
+		server.Shutdown()
+	}()
 
 	return nil
 }

@@ -7,14 +7,24 @@
 package main
 
 import (
+	"context"
 	"github.com/mkg20001/give-me-dns/lib"
+	"sync"
 )
 
 // Injectors from wire.go:
 
-func Init(config string) error {
+func Init(ctx context.Context,wg *sync.WaitGroup,config string) (func(), error) {
 	libConfig := lib.ProvideConfig(config)
 	store := lib.ProvideStore(libConfig)
-	error2 := lib.ProvideDNS(libConfig, store)
-	return error2
+	error3 := lib.ProvideNet(libConfig, store, ctx, wg)
+	if error3 != nil {
+		return func() {
+
+		},error3
+	}
+	error2 := lib.ProvideDNS(libConfig, store, ctx, wg)
+	return func() {
+
+	},error2
 }

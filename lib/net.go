@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -37,16 +38,21 @@ func ProvideNet(config *Config, store *Store, ctx context.Context, wg *sync.Wait
 			go func() {
 				defer conn.Close()
 
-				remoteAddr := conn.RemoteAddr().(*net.TCPAddr).IP.To16()
-				id, err := store.AddEntry(remoteAddr.String())
-				var responseStr string
-				if err != nil {
-					responseStr = "Failed to add entry.\n"
-				} else {
+				responseStr := func() string {
+					remoteAddr := conn.RemoteAddr().(*net.TCPAddr).IP
+					if len(remoteAddr) == 4 || strings.Contains(remoteAddr.String(), ".") {
+						return "IPv4 not supported\n"
+					}
+
+					id, err := store.AddEntry(remoteAddr.String())
+					if err != nil {
+						return "Failed to add entry.\n"
+					}
+
 					dnsName := id + "." + config.Domain
 					log.Printf("New entry %s - IP %s\n", dnsName, remoteAddr)
-					responseStr = fmt.Sprintf("Remote Address: %s\nDNS Name: %s\nValid for %s\n", remoteAddr, dnsName, config.TTL.String())
-				}
+					return fmt.Sprintf("Remote Address: %s\nDNS Name: %s\nValid for %s\n", remoteAddr, dnsName, config.TTL.String())
+				}()
 
 				conn.Write([]byte(responseStr))
 			}()

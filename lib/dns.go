@@ -27,7 +27,7 @@ func parseDNSQuery(m *dns.Msg, store *Store) {
 				rr, err := dns.NewRR(fmt.Sprintf("%s AAAA %s", q.Name, ip))
 				rr.Header().Ttl = uint32(store.Config.TTL.Seconds())
 				if err == nil {
-					log.Printf("Query for %s: Resolved %s\n", q.Name, ip)
+					log.Printf("Query for %s - Resolved %s\n", q.Name, ip)
 					m.Answer = append(m.Answer, rr)
 				} else {
 					log.Printf("%s", err.Error())

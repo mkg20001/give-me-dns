@@ -6,13 +6,13 @@ import (
 
 type Store struct {
 	ips    map[string]string
-	config *Config
+	Config *Config
 }
 
 func ProvideStore(config *Config) *Store {
 	return &Store{
 		ips:    make(map[string]string),
-		config: config,
+		Config: config,
 	}
 }
 
@@ -26,7 +26,7 @@ func genID(l int16) (string, error) {
 }
 
 func (s *Store) AddEntry(ipaddr string) (string, error) {
-	id, err := genID(s.config.IDLen)
+	id, err := genID(s.Config.IDLen)
 
 	if err != nil {
 		return "", err

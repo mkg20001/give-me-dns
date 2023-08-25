@@ -37,8 +37,8 @@ func ProvideNet(config *Config, store *Store, ctx context.Context, wg *sync.Wait
 			go func() {
 				defer conn.Close()
 
-				remoteAddr := conn.RemoteAddr().String()
-				id, err := store.AddEntry(remoteAddr)
+				remoteAddr := conn.RemoteAddr().(*net.TCPAddr).IP.To16()
+				id, err := store.AddEntry(remoteAddr.String())
 				var responseStr string
 				if err != nil {
 					responseStr = "Failed to add entry.\n"

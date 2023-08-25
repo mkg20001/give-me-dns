@@ -18,15 +18,19 @@ func parseDNSQuery(m *dns.Msg, store *Store) {
 			if len(labelIndexes) < 2 {
 				return
 			}
-			lastBlock := q.Name[labelIndexes[0]:labelIndexes[1]]
+			lastBlock := q.Name[labelIndexes[0] : labelIndexes[1]-1]
 			ip, err := store.ResolveEntry(lastBlock)
 			if err != nil {
 				return
 			}
 			if ip != "" {
 				rr, err := dns.NewRR(fmt.Sprintf("%s AAAA %s", q.Name, ip))
+				rr.Header().Ttl = uint32(store.Config.TTL.Seconds())
 				if err == nil {
+					log.Printf("Query for %s: Resolved %s\n", q.Name, ip)
 					m.Answer = append(m.Answer, rr)
+				} else {
+					log.Printf("%s", err.Error())
 				}
 			}
 		}

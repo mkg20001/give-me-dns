@@ -6,6 +6,7 @@ import (
 	"github.com/miekg/dns"
 	"log"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -18,7 +19,7 @@ func parseDNSQuery(m *dns.Msg, store *Store) {
 			if len(labelIndexes) < 2 {
 				return
 			}
-			lastBlock := q.Name[labelIndexes[0] : labelIndexes[1]-1]
+			lastBlock := strings.ToLower(q.Name)[labelIndexes[0] : labelIndexes[1]-1]
 			ip, err := store.ResolveEntry(lastBlock)
 			if err != nil {
 				return

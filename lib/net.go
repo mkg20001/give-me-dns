@@ -51,7 +51,7 @@ func ProvideNet(config *Config, store *Store, ctx context.Context, wg *sync.Wait
 
 					dnsName := id + "." + config.Domain
 					log.Printf("New entry %s - IP %s\n", dnsName, remoteAddr)
-					return fmt.Sprintf("Remote Address: %s\nDNS Name: %s\nValid for %s\n", remoteAddr, dnsName, config.TTL.String())
+					return fmt.Sprintf("Address: %s\nDNS Name: %s\nValid for %s\n", remoteAddr, dnsName, config.TTL.String())
 				}()
 
 				conn.Write([]byte(responseStr))

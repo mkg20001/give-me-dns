@@ -19,7 +19,7 @@ type Store struct {
 
 func ProvideStore(config *Config) *Store {
 	return &Store{
-		ips:    make(map[string]string),
+		ips:    make(map[string]*storeEntry),
 		Config: config,
 	}
 }

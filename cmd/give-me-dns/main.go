@@ -16,13 +16,12 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	wg.Add(2)
+	wg.Add(3)
 
 	log.Printf("Starting give-me-dns...\n")
-	cleanup, err := Init(ctx, wg, os.Args[1])
+	err := Init(os.Args[1], ctx)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	wg.Wait()
-	defer cleanup()
+	<-ctx.Done()
 }

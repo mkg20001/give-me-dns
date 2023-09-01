@@ -13,12 +13,18 @@ type Config struct {
 
 	DNSAddress string `yaml:"dns_address"`
 	DNSPort    int16  `yaml:"dns_port"`
+	DNSMNAME   string `yaml:"dns_mname"`
+	DNSNS      string `yaml:"dns_ns"`
 
 	NetAddress string `yaml:"net_address"`
 	NetPort    int16  `yaml:"net_port"`
+
+	StoreFile string `yaml:"store_file"`
+
+	SentryDSN string `yaml:"sentry_dsn,omitempty"`
 }
 
-func NewConfig(path string) (*Config, error) {
+func ReadConfig(path string) (*Config, error) {
 	yfile, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -31,13 +37,4 @@ func NewConfig(path string) (*Config, error) {
 	}
 
 	return &config, nil
-}
-
-func ProvideConfig(path string) *Config {
-	config, err := NewConfig(path)
-	if err != nil {
-		panic(err)
-	}
-
-	return config
 }

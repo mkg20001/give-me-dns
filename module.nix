@@ -12,7 +12,8 @@ in
       enable = mkEnableOption "give-me-dns";
 
       settings = mkOption {
-        desc = "Settings for give-me-dns";
+        description = "Settings for give-me-dns";
+        default = {};
         type = formnat.type;
       };
     };

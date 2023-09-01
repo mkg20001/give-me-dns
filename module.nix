@@ -14,7 +14,7 @@ in
       settings = mkOption {
         description = "Settings for give-me-dns";
         default = {};
-        type = formnat.type;
+        type = format.type;
       };
     };
   };

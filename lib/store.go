@@ -1,7 +1,9 @@
 package lib
 
 import (
+	"context"
 	"encoding/json"
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	bolt "go.etcd.io/bbolt"
 	"net"
@@ -15,11 +17,12 @@ type storeEntry struct {
 }
 
 type Store struct {
-	db       *bolt.DB
-	file     string
-	serial   int64
-	openLock sync.Mutex
-	Config   *Config
+	db         *bolt.DB
+	file       string
+	serial     int64
+	openLock   sync.Mutex
+	openCancel context.CancelFunc
+	Config     *Config
 }
 
 func ProvideStore(config *Config) (error, func() error, *Store) {
@@ -114,10 +117,67 @@ func (s *Store) Open() error {
 		return err
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	s.openCancel = cancel
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(60 * 3600 * time.Second):
+				err := s.db.Update(func(tx *bolt.Tx) error {
+					bDNS := tx.Bucket([]byte("dns"))
+					bIP := tx.Bucket([]byte("dns4ip"))
+
+					now := time.Now()
+
+					c := bDNS.Cursor()
+					var entryParsed storeEntry
+					for id, entry := c.First(); id != nil; id, entry = c.Next() {
+						err := json.Unmarshal(entry, &entryParsed)
+						if err != nil {
+							return err
+						}
+
+						if entryParsed.Expires.Before(now) {
+							err := bIP.Delete(entryParsed.Value)
+							if err != nil {
+								return err
+							}
+
+							err = bDNS.Delete(id)
+							if err != nil {
+								return err
+							}
+						}
+					}
+
+					return nil
+				})
+
+				if err != nil {
+					sentry.CaptureException(err)
+					return
+				}
+			}
+		}
+	}()
+
 	return nil
 }
 
 func (s *Store) Close() error {
+	if s.db == nil {
+		return nil
+	}
+
+	s.openLock.Lock()
+	defer s.openLock.Unlock()
+
+	s.openCancel()
+	s.openCancel = nil
+
 	err := s.db.Close()
 	if err != nil {
 		return err

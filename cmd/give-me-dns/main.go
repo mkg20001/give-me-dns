@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/mkg20001/give-me-dns/lib"
 	"log"
 	"os"
 	"os/signal"
@@ -18,8 +19,13 @@ func main() {
 
 	wg.Add(3)
 
+	config, err := lib.ReadConfig(os.Args[1])
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	log.Printf("Starting give-me-dns...\n")
-	err := Init(os.Args[1], ctx)
+	err = Init(config, ctx)
 	if err != nil {
 		log.Fatalln(err)
 	}

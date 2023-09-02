@@ -2,20 +2,16 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/mkg20001/give-me-dns/lib"
 	"time"
 )
 
-func Init(cfg string, _ctx context.Context) error {
+func Init(config *lib.Config, _ctx context.Context) error {
 	ctx, cancel := context.WithCancelCause(_ctx)
 
-	config, err := lib.ReadConfig(cfg)
-	if err != nil {
-		return err
-	}
-
-	err = sentry.Init(sentry.ClientOptions{
+	err := sentry.Init(sentry.ClientOptions{
 		Dsn: config.SentryDSN,
 		// Enable printing of SDK debug messages.
 		// Useful when getting started or trying to figure something out.
@@ -41,6 +37,7 @@ func Init(cfg string, _ctx context.Context) error {
 	go func() {
 		for err := range errChan {
 			cancel(err)
+			fmt.Printf("Fatal: %s\n", err)
 			sentry.CaptureException(err)
 		}
 	}()

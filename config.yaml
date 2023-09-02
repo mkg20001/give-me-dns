@@ -1,8 +1,6 @@
 domain: give-me-dns.net
 ttl: 48h
 idlen: 5
-dns_addr: "::"
 dns_port: 5354
-net_addr: "::"
 net_port: 9999
 store_file: /tmp/give-me-dns

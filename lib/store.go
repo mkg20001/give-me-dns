@@ -223,6 +223,7 @@ func (s *Store) AddEntry(ipaddr net.IP) (string, error) {
 			Expires: time.Now().Add(s.Config.TTL),
 			Value:   ipaddr,
 		}
+		s.serial = entry.Expires.Unix()
 		marshal, err := json.Marshal(entry)
 		if err != nil {
 			return err

@@ -15,6 +15,7 @@ type Config struct {
 	DNSPort    int16  `yaml:"dns_port"`
 	DNSMNAME   string `yaml:"dns_mname"`
 	DNSNS      string `yaml:"dns_ns"`
+	DNSSECKey  string `yaml:"dnssec_key,omitempty"`
 
 	NetAddress string `yaml:"net_address"`
 	NetPort    int16  `yaml:"net_port"`

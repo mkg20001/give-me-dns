@@ -33,9 +33,11 @@ func Init(config *lib.Config, _ctx context.Context) error {
 		return err
 	}
 
-	lib.ProvideDNS(config, store, ctx, errChan)
-	lib.ProvideNet(config, store, ctx, errChan)
-	lib.ProvideHTTP(config, store, ctx, errChan)
+	go func() {
+		lib.ProvideDNS(config, store, ctx, errChan)
+		lib.ProvideNet(config, store, ctx, errChan)
+		lib.ProvideHTTP(config, store, ctx, errChan)
+	}()
 
 	go func() {
 		canceled := false

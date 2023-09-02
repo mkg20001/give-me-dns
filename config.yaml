@@ -5,3 +5,6 @@ dns_port: 5354
 net_port: 9999
 http_port: 8053
 store_file: /tmp/give-me-dns
+dns_ns: "ns1.give-me-dns.net."
+dns_mname: "example.example.org."
+dnssec_key: "UHJpdmF0ZS1rZXktZm9ybWF0OiB2MS4zCkFsZ29yaXRobTogMTMgKEVDRFNBUDI1NlNIQTI1NikKUHJpdmF0ZUtleTogc3ltS2c5V2Y3UGJ1NEt5cWphVitMSkJlZGtIODYwYTd1R2pOZmtVbHlzbz0KUHVibGljS2V5OiBuaHp5aktpVno0RHFGRDhTZ1RWY3p2Z0lVVzlBVjNmbnpaSWNWNVl1dW8wMkkvWE1JRStIUVJWUi9Ga25HRXVaOWhDTEV1bFlQVlpIdjVxbGs3SWxhZz09Cg=="

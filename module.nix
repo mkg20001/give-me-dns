@@ -48,7 +48,7 @@ in
     ];
 
     networking.firewall.allowedTCPPorts = [
-      cfg.settings_dns_port
+      cfg.settings.dns_port
       cfg.settings.net_port
     ];
   };

@@ -39,7 +39,7 @@ in
       after = [ "network.target" ];
 
       serviceConfig = {
-        ExecStart = "${pkgs.give-me-dns}/bin/give-me-dns ${format.generate "config.yaml" cfg}";
+        ExecStart = "${pkgs.give-me-dns}/bin/give-me-dns ${format.generate "config.yaml" cfg.settings}";
         StateDirectory = "give-me-dns";
       };
     };

@@ -53,7 +53,7 @@ func parseDNSQuery(m *dns.Msg, store *Store, s *DNSSECSigner) {
 					log.Printf("dnssec err: %s", err)
 					return
 				}
-				m.Answer = append(m.Ns, rrsig)
+				m.Answer = append(m.Answer, rrsig)
 			}
 		}
 

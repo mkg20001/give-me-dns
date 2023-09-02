@@ -2,14 +2,16 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/mkg20001/give-me-dns/lib"
+	"log"
 	"time"
 )
 
 func Init(config *lib.Config, _ctx context.Context) error {
 	ctx, cancel := context.WithCancelCause(_ctx)
+
+	log.Printf("Domain %s\n", config.Domain)
 
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn: config.SentryDSN,
@@ -38,12 +40,11 @@ func Init(config *lib.Config, _ctx context.Context) error {
 	go func() {
 		canceled := false
 		for err := range errChan {
-			fmt.Printf("Fatal: %s\n", err)
+			log.Printf("Fatal: %s\n", err)
 			if !canceled {
 				cancel(err)
 				canceled = true
 			}
-			fmt.Printf("Postc")
 			sentry.CaptureException(err)
 		}
 	}()

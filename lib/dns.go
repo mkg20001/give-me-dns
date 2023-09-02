@@ -2,7 +2,6 @@ package lib
 
 import (
 	"context"
-	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/miekg/dns"
 	"log"
@@ -87,7 +86,7 @@ func ProvideDNS(config *Config, store *Store, ctx context.Context, errChan chan<
 	server := &dns.Server{Addr: config.DNSAddress + ":" + strconv.Itoa(int(config.DNSPort)), Net: "udp"}
 
 	go func() {
-		fmt.Printf("DNS listens on %s:%d\n", config.DNSAddress, config.DNSPort)
+		log.Printf("DNS listens on %s:%d\n", config.DNSAddress, config.DNSPort)
 		err := server.ListenAndServe()
 		if err != nil {
 			errChan <- err

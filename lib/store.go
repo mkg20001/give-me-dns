@@ -220,7 +220,7 @@ func (s *Store) AddEntry(ipaddr net.IP) (string, error) {
 		}
 
 		entry := Entry{
-			Expires: time.Now(),
+			Expires: time.Now().Add(s.Config.TTL),
 			Value:   ipaddr,
 		}
 		marshal, err := json.Marshal(entry)

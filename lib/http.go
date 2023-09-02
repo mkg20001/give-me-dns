@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/hoisie/mustache"
+	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -118,7 +119,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 			info, err := getInfo(writer, request, store)
 			if err != nil {
 				sentry.CaptureException(err)
-				fmt.Printf("HTTP err: %s\n", err)
+				log.Printf("HTTP err: %s\n", err)
 				fmt.Fprint(writer, template.Render(&JSONReply{
 					Err: FailedToGetInfo,
 				}))
@@ -202,7 +203,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 	}()
 
 	go func() {
-		fmt.Printf("HTTP listens on %s:%d\n", config.HTTPAddress, config.HTTPPort)
+		log.Printf("HTTP listens on %s:%d\n", config.HTTPAddress, config.HTTPPort)
 
 		err = server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {

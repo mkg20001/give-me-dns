@@ -18,7 +18,7 @@ func ProvideNet(config *Config, store *Store, ctx context.Context, errChan chan<
 			return
 		}
 
-		fmt.Printf("TCP listens on %s:%d\n", config.NetAddress, config.NetPort)
+		log.Printf("TCP listens on %s:%d\n", config.NetAddress, config.NetPort)
 
 		go func() {
 			<-ctx.Done()

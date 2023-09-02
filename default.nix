@@ -7,5 +7,5 @@ buildGoModule {
 
   src = ./.;
 
-  vendorHash = "sha256-YB9rGnjnFkhbpFcjJnfrEH7Keups4mdRyHIs1clN9QI=";
+  vendorHash = "sha256-C776CpU9xEl2ZKMV/V6PoXxUBdpPlI5g/hTkbsZaNYc=";
 }

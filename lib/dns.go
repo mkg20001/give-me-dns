@@ -57,6 +57,7 @@ func parseDNSQuery(m *dns.Msg, store *Store) {
 			r.Refresh = 1
 			r.Retry = 1
 			r.Serial = store.GetSerial()
+			r.Expire = 1
 
 			m.Answer = append(m.Answer, r)
 		}

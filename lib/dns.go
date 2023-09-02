@@ -78,12 +78,17 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg, store *Store) {
 
 func ProvideDNS(config *Config, store *Store, ctx context.Context, errChan chan<- error) {
 	// attach request handler func
-	dns.HandleFunc(config.Domain+".", func(w dns.ResponseWriter, r *dns.Msg) {
+	mux := dns.NewServeMux()
+	mux.HandleFunc(config.Domain+".", func(w dns.ResponseWriter, r *dns.Msg) {
 		handleDnsRequest(w, r, store)
 	})
 
 	// create server
-	server := &dns.Server{Addr: config.DNSAddress + ":" + strconv.Itoa(int(config.DNSPort)), Net: "udp"}
+	server := &dns.Server{
+		Addr:    config.DNSAddress + ":" + strconv.Itoa(int(config.DNSPort)),
+		Net:     "udp",
+		Handler: mux,
+	}
 
 	go func() {
 		log.Printf("DNS listens on %s:%d\n", config.DNSAddress, config.DNSPort)

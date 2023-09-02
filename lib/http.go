@@ -193,8 +193,6 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 		Handler: mux,
 	}
 
-	fmt.Printf("HTTP listens on %s:%d\n", config.HTTPAddress, config.HTTPPort)
-
 	go func() {
 		<-ctx.Done()
 		err := server.Close()
@@ -203,8 +201,12 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 		}
 	}()
 
-	err = server.ListenAndServe()
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		errChan <- err
-	}
+	go func() {
+		fmt.Printf("HTTP listens on %s:%d\n", config.HTTPAddress, config.HTTPPort)
+
+		err = server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errChan <- err
+		}
+	}()
 }

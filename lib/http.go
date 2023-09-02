@@ -40,10 +40,11 @@ type JSONReply struct {
 }
 
 type JSONGet struct {
-	HasDNS  bool      `json:"has_dns"`
-	DNSName string    `json:"dns_name,omitempty"`
-	Expires time.Time `json:"expires,omitempty"`
-	Address net.IP    `json:"address"`
+	HasDNS  bool   `json:"has_dns"`
+	TTL     string `json:"ttl"`
+	DNSName string `json:"dns_name,omitempty"`
+	Expires string `json:"expires,omitempty"`
+	Address net.IP `json:"address"`
 }
 
 func getIP(w http.ResponseWriter, req *http.Request) (net.IP, error) {
@@ -80,6 +81,7 @@ func getInfo(w http.ResponseWriter, req *http.Request, store *Store) (*JSONGet, 
 
 	info := &JSONGet{
 		Address: ip,
+		TTL:     store.Config.TTL.String(),
 	}
 
 	entry, id, err := store.ResolveIP(ip)
@@ -88,7 +90,7 @@ func getInfo(w http.ResponseWriter, req *http.Request, store *Store) (*JSONGet, 
 	}
 	if id != "" {
 		info.HasDNS = true
-		info.Expires = entry.Expires
+		info.Expires = entry.Expires.Format(time.RFC3339)
 		info.DNSName = id
 	}
 
@@ -136,7 +138,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 				return
 			}
 
-			_, err = store.AddEntry(ip)
+			_, _, err = store.AddEntry(ip)
 			if err != nil {
 				writer.WriteHeader(http.StatusInternalServerError)
 				return
@@ -173,7 +175,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 				return
 			}
 
-			_, err = store.AddEntry(ip)
+			_, _, err = store.AddEntry(ip)
 			if err != nil {
 				writer.WriteHeader(http.StatusInternalServerError)
 				jsonResponse(JSONReply{

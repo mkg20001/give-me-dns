@@ -8,6 +8,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func ProvideNet(config *Config, store *Store, ctx context.Context, errChan chan<- error) {
@@ -49,16 +50,15 @@ func ProvideNet(config *Config, store *Store, ctx context.Context, errChan chan<
 						return "IPv4 not supported\n"
 					}
 
-					id, err := store.AddEntry(remoteAddr)
+					entry, dnsName, err := store.AddEntry(remoteAddr)
 					if err != nil {
 						sentry.CaptureException(err)
 						log.Printf("Failed to add entry: %s", err)
 						return "Failed to add entry.\n"
 					}
 
-					dnsName := id + "." + config.Domain
 					log.Printf("New entry %s - IP %s\n", dnsName, remoteAddr)
-					return fmt.Sprintf("Address: %s\nDNS Name: %s\nValid for %s\n", remoteAddr, dnsName, config.TTL.String())
+					return fmt.Sprintf("Address: %s\nDNS Name: %s\nValid for %s\nExpires %s\n", remoteAddr, dnsName, config.TTL.String(), entry.Expires.Format(time.RFC3339))
 				}()
 
 				_, err := conn.Write([]byte(responseStr))

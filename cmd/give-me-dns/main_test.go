@@ -40,7 +40,7 @@ func (s *GDNSTestSuite) SetupSuite() {
 	s.cancel = cancel
 }
 
-var re = regexp.MustCompile(`(?m)Address: ::1\nDNS Name: ([a-z0-9]{5}\.give-me-dns\.net)\nValid for 48h0m0s`)
+var re = regexp.MustCompile(`(?m)Address: ::1\nDNS Name: ([a-z0-9]{5}\.give-me-dns\.net)\nValid for 48h0m0s\nExpires .+\n`)
 
 func (s *GDNSTestSuite) TestEntryAndDNS() {
 	time.Sleep(1 * time.Second)

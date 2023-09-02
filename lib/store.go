@@ -188,13 +188,14 @@ func (s *Store) Close() error {
 	return nil
 }
 
-func (s *Store) AddEntry(ipaddr net.IP) (string, error) {
+func (s *Store) AddEntry(ipaddr net.IP) (Entry, string, error) {
+	var entry Entry
+	var id string
+
 	err := s.AssertDB()
 	if err != nil {
-		return "", err
+		return entry, id, err
 	}
-
-	var id string
 
 	err = s.db.Update(func(tx *bolt.Tx) error {
 		bDNS := tx.Bucket([]byte("dns"))
@@ -219,7 +220,7 @@ func (s *Store) AddEntry(ipaddr net.IP) (string, error) {
 			}
 		}
 
-		entry := Entry{
+		entry = Entry{
 			Expires: time.Now().Add(s.Config.TTL),
 			Value:   ipaddr,
 		}
@@ -233,12 +234,12 @@ func (s *Store) AddEntry(ipaddr net.IP) (string, error) {
 			return err
 		}
 
-		id = string(idByte)
+		id = string(idByte) + "." + s.Config.Domain
 
 		return nil
 	})
 
-	return id, err
+	return entry, id, err
 }
 
 func (s *Store) ResolveEntry(id string) (net.IP, error) {

@@ -85,7 +85,6 @@ func getInfo(w http.ResponseWriter, req *http.Request, store *Store) (*JSONGet, 
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("da id %s\n", id)
 	if id != "" {
 		info.HasDNS = true
 		info.Expires = entry.Expires
@@ -95,8 +94,8 @@ func getInfo(w http.ResponseWriter, req *http.Request, store *Store) (*JSONGet, 
 	return info, err
 }
 
-const FAILED_TO_GET_INFO = "Failed to get information about client"
-const FAILED_TO_ADD_ENTRY = "Failed to add entry"
+const FailedToGetInfo = "Failed to get information about client"
+const FailedToAddEntry = "Failed to add entry"
 
 func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan<- error) {
 	file, err := assetFS.ReadFile("index.html")
@@ -121,7 +120,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 				sentry.CaptureException(err)
 				fmt.Printf("HTTP err: %s\n", err)
 				fmt.Fprint(writer, template.Render(&JSONReply{
-					Err: FAILED_TO_GET_INFO,
+					Err: FailedToGetInfo,
 				}))
 			} else {
 				fmt.Fprint(writer, template.Render(&JSONReply{
@@ -154,7 +153,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 			info, err := getInfo(writer, request, store)
 			if err != nil {
 				jsonResponse(JSONReply{
-					Err: FAILED_TO_GET_INFO,
+					Err: FailedToGetInfo,
 				}, writer)
 				return
 			}
@@ -168,7 +167,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 			if err != nil {
 				writer.WriteHeader(http.StatusBadRequest)
 				jsonResponse(JSONReply{
-					Err: FAILED_TO_GET_INFO,
+					Err: FailedToGetInfo,
 				}, writer)
 				return
 			}
@@ -177,7 +176,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 			if err != nil {
 				writer.WriteHeader(http.StatusInternalServerError)
 				jsonResponse(JSONReply{
-					Err: FAILED_TO_ADD_ENTRY,
+					Err: FailedToAddEntry,
 				}, writer)
 				return
 			}

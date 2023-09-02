@@ -279,6 +279,7 @@ func (s *Store) ResolveIP(ip net.IP) (Entry, string, error) {
 	err = s.db.View(func(tx *bolt.Tx) error {
 		bDNS := tx.Bucket([]byte("dns"))
 		bIP := tx.Bucket([]byte("dns4ip"))
+
 		id := bIP.Get(ip)
 		if id == nil {
 			return nil

@@ -30,6 +30,7 @@ func (s *GDNSTestSuite) SetupSuite() {
 			DNSMNAME:  "example.example.org",
 			DNSNS:     "ns1.give-me-dns.net",
 			NetPort:   9999,
+			HTTPPort:  8053,
 			StoreFile: "/tmp/" + uuid.Must(uuid.NewUUID()).String(),
 		}, ctx)
 		if err != nil {

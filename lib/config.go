@@ -22,6 +22,9 @@ type Config struct {
 	StoreFile string `yaml:"store_file"`
 
 	SentryDSN string `yaml:"sentry_dsn,omitempty"`
+
+	HTTPAddress string `yaml:"http_address"`
+	HTTPPort    int16  `yaml:"http_port"`
 }
 
 func ReadConfig(path string) (*Config, error) {

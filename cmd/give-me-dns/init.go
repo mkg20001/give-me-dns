@@ -33,11 +33,17 @@ func Init(config *lib.Config, _ctx context.Context) error {
 
 	lib.ProvideDNS(config, store, ctx, errChan)
 	lib.ProvideNet(config, store, ctx, errChan)
+	lib.ProvideHTTP(config, store, ctx, errChan)
 
 	go func() {
+		canceled := false
 		for err := range errChan {
-			cancel(err)
 			fmt.Printf("Fatal: %s\n", err)
+			if !canceled {
+				cancel(err)
+				canceled = true
+			}
+			fmt.Printf("Postc")
 			sentry.CaptureException(err)
 		}
 	}()

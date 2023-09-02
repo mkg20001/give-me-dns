@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type storeEntry struct {
+type Entry struct {
 	Expires time.Time `json:"expires"`
 	Value   net.IP    `json:"value"`
 }
@@ -84,7 +84,7 @@ func (s *Store) Open() error {
 			return err
 		}
 
-		var entryParsed storeEntry
+		var entryParsed Entry
 		now := time.Now()
 
 		c := bDNS.Cursor()
@@ -133,7 +133,7 @@ func (s *Store) Open() error {
 					now := time.Now()
 
 					c := bDNS.Cursor()
-					var entryParsed storeEntry
+					var entryParsed Entry
 					for id, entry := c.First(); id != nil; id, entry = c.Next() {
 						err := json.Unmarshal(entry, &entryParsed)
 						if err != nil {
@@ -188,7 +188,7 @@ func (s *Store) Close() error {
 	return nil
 }
 
-func (s *Store) AddEntry(ipaddr []byte) (string, error) {
+func (s *Store) AddEntry(ipaddr net.IP) (string, error) {
 	err := s.AssertDB()
 	if err != nil {
 		return "", err
@@ -219,7 +219,7 @@ func (s *Store) AddEntry(ipaddr []byte) (string, error) {
 			}
 		}
 
-		entry := storeEntry{
+		entry := Entry{
 			Expires: time.Now(),
 			Value:   ipaddr,
 		}
@@ -240,13 +240,13 @@ func (s *Store) AddEntry(ipaddr []byte) (string, error) {
 	return id, err
 }
 
-func (s *Store) ResolveEntry(id string) ([]byte, error) {
+func (s *Store) ResolveEntry(id string) (net.IP, error) {
 	err := s.AssertDB()
 	if err != nil {
 		return nil, err
 	}
 
-	var ip []byte
+	var ip net.IP
 
 	err = s.db.View(func(tx *bolt.Tx) error {
 		bDNS := tx.Bucket([]byte("dns"))
@@ -254,7 +254,7 @@ func (s *Store) ResolveEntry(id string) ([]byte, error) {
 		if entry == nil {
 			return nil
 		}
-		var entryParsed storeEntry
+		var entryParsed Entry
 		err := json.Unmarshal(entry, &entryParsed)
 		if err != nil {
 			return err
@@ -265,6 +265,40 @@ func (s *Store) ResolveEntry(id string) ([]byte, error) {
 	})
 
 	return ip, err
+}
+
+func (s *Store) ResolveIP(ip net.IP) (Entry, string, error) {
+	var entryParsed Entry
+	var idStr string
+
+	err := s.AssertDB()
+	if err != nil {
+		return entryParsed, idStr, err
+	}
+
+	err = s.db.View(func(tx *bolt.Tx) error {
+		bDNS := tx.Bucket([]byte("dns"))
+		bIP := tx.Bucket([]byte("dns4ip"))
+		id := bIP.Get(ip)
+		if id == nil {
+			return nil
+		}
+
+		idStr = string(id) + "." + s.Config.Domain
+		entry := bDNS.Get(id)
+		if entry == nil {
+			return nil
+		}
+
+		err := json.Unmarshal(entry, &entryParsed)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return entryParsed, idStr, err
 }
 
 func (s *Store) GetSerial() uint32 {

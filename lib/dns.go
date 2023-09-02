@@ -11,6 +11,8 @@ import (
 )
 
 func parseDNSQuery(m *dns.Msg, store *Store) {
+	m.Authoritative = true
+
 	for _, q := range m.Question {
 		switch q.Qtype {
 		case dns.TypeAAAA:
@@ -39,7 +41,9 @@ func parseDNSQuery(m *dns.Msg, store *Store) {
 				log.Printf("Query for %s - Resolved %s\n", q.Name, ip)
 				m.Answer = append(m.Answer, r)
 			}
-		default:
+		}
+
+		if len(m.Answer) < 1 {
 			r := new(dns.SOA)
 			r.Hdr = dns.RR_Header{
 				Name:   q.Name,
@@ -54,6 +58,8 @@ func parseDNSQuery(m *dns.Msg, store *Store) {
 			r.Refresh = 1
 			r.Retry = 1
 			r.Serial = store.GetSerial()
+
+			m.Answer = append(m.Answer, r)
 		}
 	}
 }

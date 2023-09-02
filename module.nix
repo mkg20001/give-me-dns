@@ -24,10 +24,9 @@ in
         domain = "6dns.me";
         ttl = "48h";
         idlen = 3;
-        dns_addr = "::";
         dns_port = 53;
-        net_addr = "::";
         net_port = 9999;
+        http_port = 8053;
         store_file = "/var/lib/give-me-dns/db";
         dns_ns = "ns1.give-me-dns.net";
         dns_mname = "mkg20001.gmail.com.";

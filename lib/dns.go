@@ -166,6 +166,8 @@ func (s *DNSSECSigner) setupRecord() {
 		Class:  dns.ClassINET,
 		Ttl:    3600,
 	}
+	s.d.Protocol = 3 // DNSSEC
+	s.d.Flags = 257  // ZONE, SEP
 	s.d.Algorithm = dns.ECDSAP256SHA256
 }
 

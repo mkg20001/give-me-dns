@@ -164,7 +164,7 @@ func (s *DNSSECSigner) setupRecord() {
 		Name:   s.config.Domain + ".",
 		Rrtype: dns.TypeDNSKEY,
 		Class:  dns.ClassINET,
-		Ttl:    uint32(s.config.TTL.Seconds()),
+		Ttl:    3600,
 	}
 	s.d.Algorithm = dns.ECDSAP256SHA256
 }

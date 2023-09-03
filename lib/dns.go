@@ -247,7 +247,7 @@ func (s *DNSSECSigner) Sign(rr []dns.RR) (*dns.RRSIG, error) {
 	rrsig.Algorithm = s.d.Algorithm
 	rrsig.KeyTag = s.d.KeyTag()
 	rrsig.SignerName = s.config.Domain + "."
-	rrsig.Inception = uint32(time.Now().Unix() - 120)
+	rrsig.Inception = uint32(time.Now().Unix() - 3600)
 	rrsig.Expiration = uint32(time.Now().Add(1 * time.Hour).Unix())
 	rrsig.Hdr.Ttl = rr[0].Header().Ttl
 	err := rrsig.Sign(s.signer, rr)

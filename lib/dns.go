@@ -15,12 +15,42 @@ import (
 	"time"
 )
 
-func parseDNSQuery(m *dns.Msg, store *Store, s *DNSSECSigner) {
+func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 	m.Authoritative = true
-	m.SetEdns0(4096, true)
+	shouldSign := false
+
+	main := store.Config.Domain + "."
+
+	if r.IsEdns0() != nil {
+		if r.IsEdns0().Do() {
+			shouldSign = true
+		}
+		m.SetEdns0(4096, true)
+	}
 
 	for _, q := range m.Question {
+		ismain := strings.ToLower(q.Name) == main
+
 		switch q.Qtype {
+		case dns.TypeDNSKEY:
+			if ismain {
+				d := s.GetDNSKEY()
+				m.Answer = append(m.Answer, &d)
+			}
+		case dns.TypeNS:
+			if ismain {
+				for _, ns := range store.Config.DNSNS {
+					nsrr := new(dns.NS)
+					nsrr.Ns = ns
+					nsrr.Hdr = dns.RR_Header{
+						Name:   q.Name,
+						Rrtype: dns.TypeNS,
+						Class:  dns.ClassINET,
+						Ttl:    3600,
+					}
+					m.Answer = append(m.Answer, nsrr)
+				}
+			}
 		case dns.TypeAAAA:
 			log.Printf("Query for %s\n", q.Name)
 			labelIndexes := dns.Split(q.Name)
@@ -46,7 +76,11 @@ func parseDNSQuery(m *dns.Msg, store *Store, s *DNSSECSigner) {
 
 				log.Printf("Query for %s - Resolved %s\n", q.Name, ip)
 				m.Answer = append(m.Answer, r)
+			}
+		}
 
+		if len(m.Answer) > 0 {
+			if shouldSign {
 				rrsig, err := s.Sign(m.Answer)
 				if err != nil {
 					sentry.CaptureException(err)
@@ -55,9 +89,7 @@ func parseDNSQuery(m *dns.Msg, store *Store, s *DNSSECSigner) {
 				}
 				m.Answer = append(m.Answer, rrsig)
 			}
-		}
-
-		if len(m.Answer) < 1 {
+		} else {
 			r := new(dns.SOA)
 			r.Hdr = dns.RR_Header{
 				Name:   q.Name,
@@ -67,7 +99,7 @@ func parseDNSQuery(m *dns.Msg, store *Store, s *DNSSECSigner) {
 			}
 
 			r.Mbox = store.Config.DNSMNAME
-			r.Ns = store.Config.DNSNS
+			r.Ns = store.Config.DNSNS[0]
 			r.Minttl = 3600
 			r.Refresh = 1
 			r.Retry = 1
@@ -76,33 +108,35 @@ func parseDNSQuery(m *dns.Msg, store *Store, s *DNSSECSigner) {
 
 			m.Ns = append(m.Ns, r)
 
-			nsec := &dns.NSEC{
-				Hdr: dns.RR_Header{
-					Name:   q.Name,
-					Rrtype: dns.TypeNSEC,
-					Class:  dns.ClassINET,
-					Ttl:    3600,
-				},
-				NextDomain: "\000" + "." + q.Name,
-				TypeBitMap: []uint16{q.Qtype, dns.TypeNS, dns.TypeSOA},
-			}
-			m.Ns = append(m.Ns, nsec)
+			if shouldSign {
+				nsec := &dns.NSEC{
+					Hdr: dns.RR_Header{
+						Name:   q.Name,
+						Rrtype: dns.TypeNSEC,
+						Class:  dns.ClassINET,
+						Ttl:    3600,
+					},
+					NextDomain: "\000" + "." + q.Name,
+					TypeBitMap: []uint16{q.Qtype, dns.TypeNS, dns.TypeSOA},
+				}
+				m.Ns = append(m.Ns, nsec)
 
-			rrsig, err := s.Sign([]dns.RR{r})
-			if err != nil {
-				sentry.CaptureException(err)
-				log.Printf("dnssec err: %s", err)
-				return
-			}
-			m.Ns = append(m.Ns, rrsig)
+				rrsig, err := s.Sign([]dns.RR{r})
+				if err != nil {
+					sentry.CaptureException(err)
+					log.Printf("dnssec err: %s", err)
+					return
+				}
+				m.Ns = append(m.Ns, rrsig)
 
-			rrsig2, err := s.Sign([]dns.RR{nsec})
-			if err != nil {
-				sentry.CaptureException(err)
-				log.Printf("dnssec err: %s", err)
-				return
+				rrsig2, err := s.Sign([]dns.RR{nsec})
+				if err != nil {
+					sentry.CaptureException(err)
+					log.Printf("dnssec err: %s", err)
+					return
+				}
+				m.Ns = append(m.Ns, rrsig2)
 			}
-			m.Ns = append(m.Ns, rrsig2)
 		}
 	}
 }
@@ -114,7 +148,7 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg, store *Store, s *DNSSECS
 
 	switch r.Opcode {
 	case dns.OpcodeQuery:
-		parseDNSQuery(m, store, s)
+		parseDNSQuery(r, m, store, s)
 	}
 
 	w.WriteMsg(m)
@@ -188,6 +222,10 @@ func (s *DNSSECSigner) Load(str string) error {
 	}
 
 	return nil
+}
+
+func (s *DNSSECSigner) GetDNSKEY() dns.DNSKEY {
+	return s.d
 }
 
 func (s *DNSSECSigner) GetDS() string {

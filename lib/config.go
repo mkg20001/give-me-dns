@@ -11,11 +11,11 @@ type Config struct {
 	TTL    time.Duration `yaml:"ttl"`
 	IDLen  int16         `yaml:"idlen"`
 
-	DNSAddress string `yaml:"dns_address"`
-	DNSPort    int16  `yaml:"dns_port"`
-	DNSMNAME   string `yaml:"dns_mname"`
-	DNSNS      string `yaml:"dns_ns"`
-	DNSSECKey  string `yaml:"dnssec_key,omitempty"`
+	DNSAddress string   `yaml:"dns_address"`
+	DNSPort    int16    `yaml:"dns_port"`
+	DNSMNAME   string   `yaml:"dns_mname"`
+	DNSNS      []string `yaml:"dns_ns"`
+	DNSSECKey  string   `yaml:"dnssec_key,omitempty"`
 
 	NetAddress string `yaml:"net_address"`
 	NetPort    int16  `yaml:"net_port"`

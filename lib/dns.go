@@ -25,7 +25,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 		if r.IsEdns0().Do() {
 			shouldSign = true
 		}
-		m.SetEdns0(4096, true)
+		m.SetEdns0(4096, shouldSign)
 	}
 
 	for _, q := range m.Question {

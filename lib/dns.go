@@ -116,7 +116,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 						Ttl:    3600,
 					},
 					NextDomain: "\000" + "." + q.Name,
-					TypeBitMap: []uint16{q.Qtype, dns.TypeNS, dns.TypeSOA},
+					TypeBitMap: []uint16{dns.TypeNS, dns.TypeSOA},
 				}
 				m.Ns = append(m.Ns, nsec)
 
@@ -156,11 +156,10 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg, store *Store, s *DNSSECS
 type DNSSECSigner struct {
 	d      dns.DNSKEY
 	signer crypto.Signer
-	config Config
+	config *Config
 }
 
 func (s *DNSSECSigner) setupRecord() {
-	// load or generate DNSSEC key
 	s.d.Hdr = dns.RR_Header{
 		Name:   s.config.Domain + ".",
 		Rrtype: dns.TypeDNSKEY,
@@ -248,7 +247,9 @@ func (s *DNSSECSigner) Sign(rr []dns.RR) (*dns.RRSIG, error) {
 	rrsig.Algorithm = s.d.Algorithm
 	rrsig.KeyTag = s.d.KeyTag()
 	rrsig.SignerName = s.config.Domain + "."
-	rrsig.Expiration = 3600
+	rrsig.Inception = uint32(time.Now().Unix())
+	rrsig.Expiration = uint32(time.Now().Add(1 * time.Hour).Unix())
+	rrsig.Hdr.Ttl = rr[0].Header().Ttl
 	err := rrsig.Sign(s.signer, rr)
 	if err != nil {
 		return nil, err
@@ -258,7 +259,9 @@ func (s *DNSSECSigner) Sign(rr []dns.RR) (*dns.RRSIG, error) {
 
 func ProvideDNS(config *Config, store *Store, ctx context.Context, errChan chan<- error) {
 	// prepare dnssec
-	s := &DNSSECSigner{}
+	s := &DNSSECSigner{
+		config: config,
+	}
 	if config.DNSSECKey == "" {
 		keyexport, err := s.Generate()
 		if err != nil {

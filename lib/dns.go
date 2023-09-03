@@ -34,8 +34,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 		switch q.Qtype {
 		case dns.TypeDNSKEY:
 			if ismain {
-				d := s.GetDNSKEY()
-				m.Answer = append(m.Answer, &d)
+				m.Answer = append(m.Answer, s.GetDNSKEY())
 			}
 		case dns.TypeNS:
 			if ismain {
@@ -164,7 +163,7 @@ func (s *DNSSECSigner) setupRecord() {
 	// load or generate DNSSEC key
 	s.d.Hdr = dns.RR_Header{
 		Name:   s.config.Domain + ".",
-		Rrtype: dns.TypeDS,
+		Rrtype: dns.TypeDNSKEY,
 		Class:  dns.ClassINET,
 		Ttl:    uint32(s.config.TTL.Seconds()),
 	}
@@ -224,8 +223,8 @@ func (s *DNSSECSigner) Load(str string) error {
 	return nil
 }
 
-func (s *DNSSECSigner) GetDNSKEY() dns.DNSKEY {
-	return s.d
+func (s *DNSSECSigner) GetDNSKEY() *dns.DNSKEY {
+	return &s.d
 }
 
 func (s *DNSSECSigner) GetDS() string {

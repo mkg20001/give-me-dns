@@ -152,23 +152,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 				m.Answer = append(m.Answer, rrsig)
 			}
 		} else {
-			r := new(dns.SOA)
-			r.Hdr = dns.RR_Header{
-				Name:   q.Name,
-				Rrtype: dns.TypeSOA,
-				Class:  dns.ClassINET,
-				Ttl:    3600,
-			}
-
-			r.Mbox = store.Config.DNSMNAME
-			r.Ns = store.Config.DNSNS[0]
-			r.Minttl = 3600
-			r.Refresh = 1
-			r.Retry = 1
-			r.Serial = store.GetSerial()
-			r.Expire = 1
-
-			m.Ns = append(m.Ns, r)
+			m.Ns = append(m.Ns, soa)
 
 			if shouldSign {
 				nsec := &dns.NSEC{

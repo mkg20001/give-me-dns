@@ -33,6 +33,22 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 
 		log.Printf("Question %s", q.String())
 
+		soa := new(dns.SOA)
+		soa.Hdr = dns.RR_Header{
+			Name:   q.Name,
+			Rrtype: dns.TypeSOA,
+			Class:  dns.ClassINET,
+			Ttl:    3600,
+		}
+
+		soa.Mbox = store.Config.DNSMNAME
+		soa.Ns = store.Config.DNSNS[0]
+		soa.Minttl = 3600
+		soa.Refresh = 1
+		soa.Retry = 1
+		soa.Serial = store.GetSerial()
+		soa.Expire = 1
+
 		switch q.Qtype {
 		case dns.TypeDNSKEY:
 			if ismain {
@@ -60,30 +76,39 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 				}
 			}
 		case dns.TypeAAAA:
-			log.Printf("Query for %s\n", q.Name)
-			labelIndexes := dns.Split(q.Name)
-			if len(labelIndexes) < 2 {
-				return
-			}
-			lastBlock := strings.ToLower(q.Name)[labelIndexes[0] : labelIndexes[1]-1]
-			ip, err := store.ResolveEntry(lastBlock)
-			if err != nil {
-				sentry.CaptureException(err)
-				log.Printf("Failed to resolve: %s", err)
-				return
-			}
-			if ip != nil {
-				r := new(dns.AAAA)
-				r.Hdr = dns.RR_Header{
-					Name:   q.Name,
-					Rrtype: dns.TypeAAAA,
-					Class:  dns.ClassINET,
-					Ttl:    uint32(store.Config.TTL.Seconds()),
+		case dns.TypeSOA:
+			if ismain && q.Qtype == dns.TypeSOA {
+				m.Answer = append(m.Answer, soa)
+			} else {
+				log.Printf("Query for %s\n", q.Name)
+				labelIndexes := dns.Split(q.Name)
+				if len(labelIndexes) < 2 {
+					return
 				}
-				r.AAAA = ip
+				lastBlock := strings.ToLower(q.Name)[labelIndexes[0] : labelIndexes[1]-1]
+				ip, err := store.ResolveEntry(lastBlock)
+				if err != nil {
+					sentry.CaptureException(err)
+					log.Printf("Failed to resolve: %s", err)
+					return
+				}
+				if ip != nil {
+					if q.Qtype == dns.TypeAAAA {
+						r := new(dns.AAAA)
+						r.Hdr = dns.RR_Header{
+							Name:   q.Name,
+							Rrtype: dns.TypeAAAA,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(store.Config.TTL.Seconds()),
+						}
+						r.AAAA = ip
 
-				log.Printf("Query for %s - Resolved %s\n", q.Name, ip)
-				m.Answer = append(m.Answer, r)
+						log.Printf("Query for %s - Resolved %s\n", q.Name, ip)
+						m.Answer = append(m.Answer, r)
+					} else {
+						m.Answer = append(m.Answer, soa)
+					}
+				}
 			}
 		}
 

@@ -36,6 +36,10 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 			if ismain {
 				m.Answer = append(m.Answer, s.GetDNSKEY())
 			}
+		case dns.TypeDS:
+			if ismain {
+				m.Answer = append(m.Answer, s.GetDS())
+			}
 		case dns.TypeNS:
 			if ismain {
 				for _, ns := range store.Config.DNSNS {
@@ -228,16 +232,25 @@ func (s *DNSSECSigner) GetDNSKEY() *dns.DNSKEY {
 	return &s.d
 }
 
-func (s *DNSSECSigner) GetDS() string {
+func (s *DNSSECSigner) GetDS() *dns.DS {
 	if s.signer == nil {
-		return ""
+		return nil
 	}
 
 	ds := s.d.ToDS(2)
 	ds.Hdr.Name = s.config.Domain + "."
 	ds.Hdr.Ttl = uint32((time.Hour * 24 * 30).Seconds())
 
-	return ds.String()
+	return ds
+}
+
+func (s *DNSSECSigner) GetDSStr() string {
+	ds := s.GetDS()
+	if ds != nil {
+		return ds.String()
+	}
+
+	return ""
 }
 
 func (s *DNSSECSigner) Sign(rr []dns.RR) (*dns.RRSIG, error) {
@@ -281,7 +294,7 @@ func ProvideDNS(config *Config, store *Store, ctx context.Context, errChan chan<
 		}
 	}
 
-	log.Printf("DS Record: %s\n", s.GetDS())
+	log.Printf("DS Record: %s\n", s.GetDSStr())
 
 	// attach request handler func
 	mux := dns.NewServeMux()

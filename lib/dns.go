@@ -55,11 +55,6 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 				log.Printf("A DNSKEY")
 				m.Answer = append(m.Answer, s.GetDNSKEY())
 			}
-		case dns.TypeDS:
-			if ismain {
-				log.Printf("A DS")
-				m.Answer = append(m.Answer, s.GetDS())
-			}
 		case dns.TypeNS:
 			if ismain {
 				log.Printf("A NS")

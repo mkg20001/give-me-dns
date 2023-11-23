@@ -151,8 +151,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 		}
 	})
 	mux.HandleFunc("/json", func(writer http.ResponseWriter, request *http.Request) {
-		switch request.Method {
-		case "GET":
+		get := func() {
 			info, err := getInfo(writer, request, store)
 			if err != nil {
 				jsonResponse(JSONReply{
@@ -165,6 +164,11 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 				OK:  true,
 				Res: info,
 			}, writer)
+		}
+
+		switch request.Method {
+		case "GET":
+			get()
 		case "POST":
 			ip, err := getIP(writer, request)
 			if err != nil {
@@ -184,8 +188,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 				return
 			}
 
-			// switch to GET
-			http.Redirect(writer, request, "/json", http.StatusSeeOther)
+			get()
 		default:
 			writer.WriteHeader(http.StatusMethodNotAllowed)
 		}

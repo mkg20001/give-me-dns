@@ -167,7 +167,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 				}
 				m.Ns = append(m.Ns, nsec)
 
-				rrsig, err := s.Sign([]dns.RR{r})
+				rrsig, err := s.Sign([]dns.RR{soa})
 				if err != nil {
 					sentry.CaptureException(err)
 					log.Printf("dnssec err: %s", err)

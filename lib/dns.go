@@ -31,17 +31,22 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 	for _, q := range m.Question {
 		ismain := strings.ToLower(q.Name) == main
 
+		log.Printf("Question %s", q.String())
+
 		switch q.Qtype {
 		case dns.TypeDNSKEY:
 			if ismain {
+				log.Printf("A DNSKEY")
 				m.Answer = append(m.Answer, s.GetDNSKEY())
 			}
 		case dns.TypeDS:
 			if ismain {
+				log.Printf("A DS")
 				m.Answer = append(m.Answer, s.GetDS())
 			}
 		case dns.TypeNS:
 			if ismain {
+				log.Printf("A NS")
 				for _, ns := range store.Config.DNSNS {
 					nsrr := new(dns.NS)
 					nsrr.Ns = ns

@@ -23,15 +23,23 @@ func (s *GDNSTestSuite) SetupSuite() {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		err := Init(&lib.Config{
-			Domain:    "give-me-dns.net",
-			TTL:       48 * time.Hour,
-			IDLen:     5,
-			DNSPort:   5354,
-			DNSMNAME:  "example.example.org.",
-			DNSNS:     []string{"ns1.give-me-dns.net.", "ns2.give-me-dns.net."},
-			NetPort:   9999,
-			HTTPPort:  8053,
-			StoreFile: "/tmp/" + uuid.Must(uuid.NewUUID()).String(),
+			Store: lib.StoreConfig{
+				Domain: "give-me-dns.net",
+				File:   "/tmp/" + uuid.Must(uuid.NewUUID()).String(),
+				TTL:    48 * time.Hour,
+				IDLen:  5,
+			},
+			DNS: lib.DNSConfig{
+				Port:  5354,
+				MNAME: "example.example.org.",
+				NS:    []string{"ns1.give-me-dns.net.", "ns2.give-me-dns.net."},
+			},
+			Net: lib.NetConfig{
+				Port: 9999,
+			},
+			HTTP: lib.HTTPConfig{
+				Port: 8053,
+			},
 		}, ctx)
 		if err != nil {
 			panic(err)

@@ -21,18 +21,22 @@ in
   config = lib.mkIf (cfg.enable) {
     services.give-me-dns = {
       settings = mapAttrs' (name: value: nameValuePair (name) (mkDefault value)) {
-        domain = "6dns.me";
-        ttl = "48h";
-        idlen = 3;
-        dns_port = 53;
-        net_port = 9999;
-        http_port = 8053;
-        store_file = "/var/lib/give-me-dns/db";
-        dns_ns = [
-           "ns1.give-me-dns.net."
-           "ns2.give-me-dns.net."
-        ];
-        dns_mname = "mkg20001.gmail.com.";
+        store = {
+          domain = "6dns.me";
+          ttl = "48h";
+          idlen = 3;
+          file = "/var/lib/give-me-dns/db";
+        };
+        dns = {
+          port = 53;
+          ns = [
+             "ns1.give-me-dns.net."
+             "ns2.give-me-dns.net."
+          ];
+          mname = "mkg20001.gmail.com.";
+        };
+        net.port = 9999;
+        http.port = 8053;
       };
     };
 

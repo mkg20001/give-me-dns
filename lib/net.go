@@ -11,15 +11,15 @@ import (
 	"time"
 )
 
-func ProvideNet(config *Config, store *Store, ctx context.Context, errChan chan<- error) {
+func ProvideNet(config *NetConfig, store *Store, ctx context.Context, errChan chan<- error) {
 	go func() {
-		listen, err := net.Listen("tcp", config.NetAddress+":"+strconv.Itoa(int(config.NetPort)))
+		listen, err := net.Listen("tcp", config.Address+":"+strconv.Itoa(int(config.Port)))
 		if err != nil {
 			errChan <- err
 			return
 		}
 
-		log.Printf("TCP listens on %s:%d\n", config.NetAddress, config.NetPort)
+		log.Printf("TCP listens on %s:%d\n", config.Address, config.Port)
 
 		go func() {
 			<-ctx.Done()
@@ -58,7 +58,7 @@ func ProvideNet(config *Config, store *Store, ctx context.Context, errChan chan<
 					}
 
 					log.Printf("New entry %s - IP %s\n", dnsName, remoteAddr)
-					return fmt.Sprintf("Address: %s\nDNS Name: %s\nValid for %s\nExpires %s\n", remoteAddr, dnsName, config.TTL.String(), entry.Expires.Format(time.RFC3339))
+					return fmt.Sprintf("Address: %s\nDNS Name: %s\nValid for %s\nExpires %s\n", remoteAddr, dnsName, store.TTL().String(), entry.Expires.Format(time.RFC3339))
 				}()
 
 				_, err := conn.Write([]byte(responseStr))

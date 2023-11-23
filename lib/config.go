@@ -7,25 +7,38 @@ import (
 )
 
 type Config struct {
-	Domain string        `yaml:"domain"`
-	TTL    time.Duration `yaml:"ttl"`
-	IDLen  int16         `yaml:"idlen"`
-
-	DNSAddress string   `yaml:"dns_address"`
-	DNSPort    int16    `yaml:"dns_port"`
-	DNSMNAME   string   `yaml:"dns_mname"`
-	DNSNS      []string `yaml:"dns_ns"`
-	DNSSECKey  string   `yaml:"dnssec_key,omitempty"`
-
-	NetAddress string `yaml:"net_address"`
-	NetPort    int16  `yaml:"net_port"`
-
-	StoreFile string `yaml:"store_file"`
-
 	SentryDSN string `yaml:"sentry_dsn,omitempty"`
 
-	HTTPAddress string `yaml:"http_address"`
-	HTTPPort    int16  `yaml:"http_port"`
+	Store StoreConfig `yaml:"store"`
+	DNS   DNSConfig   `yaml:"dns"`
+	Net   NetConfig   `yaml:"net"`
+	HTTP  HTTPConfig  `yaml:"http"`
+}
+
+type DNSConfig struct {
+	Address string `yaml:"address"`
+	Port    int16  `yaml:"port"`
+
+	MNAME     string   `yaml:"mname"`
+	NS        []string `yaml:"ns"`
+	DNSSECKey string   `yaml:"dnssec_key,omitempty"`
+}
+
+type NetConfig struct {
+	Address string `yaml:"address"`
+	Port    int16  `yaml:"port"`
+}
+
+type HTTPConfig struct {
+	Address string `yaml:"address"`
+	Port    int16  `yaml:"port"`
+}
+
+type StoreConfig struct {
+	Domain string        `yaml:"domain"`
+	File   string        `yaml:"file"`
+	IDLen  int16         `yaml:"idlen"`
+	TTL    time.Duration `yaml:"ttl"`
 }
 
 func ReadConfig(path string) (*Config, error) {

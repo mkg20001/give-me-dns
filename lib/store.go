@@ -22,13 +22,13 @@ type Store struct {
 	serial     int64
 	openLock   sync.Mutex
 	openCancel context.CancelFunc
-	Config     *Config
+	Config     *StoreConfig
 }
 
-func ProvideStore(config *Config) (error, func() error, *Store) {
+func ProvideStore(config *StoreConfig) (error, func() error, *Store) {
 	store := &Store{
 		Config: config,
-		file:   config.StoreFile,
+		file:   config.File,
 	}
 	err := store.Open()
 	if err != nil {
@@ -47,6 +47,14 @@ func genID(l int16) (string, error) {
 	}
 
 	return id.String()[0:l], nil
+}
+
+func (s *Store) Domain() string {
+	return s.Config.Domain
+}
+
+func (s *Store) TTL() time.Duration {
+	return s.Config.TTL
 }
 
 func (s *Store) AssertDB() error {

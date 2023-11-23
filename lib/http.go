@@ -100,7 +100,7 @@ func getInfo(w http.ResponseWriter, req *http.Request, store *Store) (*JSONGet, 
 const FailedToGetInfo = "Failed to get information about client"
 const FailedToAddEntry = "Failed to add entry"
 
-func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan<- error) {
+func ProvideHTTP(config *HTTPConfig, store *Store, ctx context.Context, errChan chan<- error) {
 	file, err := assetFS.ReadFile("index.html")
 	if err != nil {
 		errChan <- err
@@ -188,7 +188,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 	})
 
 	server := &http.Server{
-		Addr:    config.HTTPAddress + ":" + strconv.Itoa(int(config.HTTPPort)),
+		Addr:    config.Address + ":" + strconv.Itoa(int(config.Port)),
 		Handler: mux,
 	}
 
@@ -201,7 +201,7 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 	}()
 
 	go func() {
-		log.Printf("HTTP listens on %s:%d\n", config.HTTPAddress, config.HTTPPort)
+		log.Printf("HTTP listens on %s:%d\n", config.Address, config.Port)
 
 		err = server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {

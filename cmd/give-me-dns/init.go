@@ -11,7 +11,7 @@ import (
 func Init(config *lib.Config, _ctx context.Context) error {
 	ctx, cancel := context.WithCancelCause(_ctx)
 
-	log.Printf("Domain %s\n", config.Domain)
+	log.Printf("Domain %s\n", config.Store.Domain)
 
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn: config.SentryDSN,
@@ -26,7 +26,7 @@ func Init(config *lib.Config, _ctx context.Context) error {
 
 	errChan := make(chan error)
 
-	err, cleanStore, store := lib.ProvideStore(config)
+	err, cleanStore, store := lib.ProvideStore(&config.Store)
 	if err != nil {
 		cancel(err)
 		sentry.CaptureException(err)
@@ -34,9 +34,9 @@ func Init(config *lib.Config, _ctx context.Context) error {
 	}
 
 	go func() {
-		lib.ProvideDNS(config, store, ctx, errChan)
-		lib.ProvideNet(config, store, ctx, errChan)
-		lib.ProvideHTTP(config, store, ctx, errChan)
+		lib.ProvideDNS(&config.DNS, store, ctx, errChan)
+		lib.ProvideNet(&config.Net, store, ctx, errChan)
+		lib.ProvideHTTP(&config.HTTP, store, ctx, errChan)
 	}()
 
 	go func() {

@@ -35,7 +35,7 @@ func resolveDomain(q dns.Question, store *Store) net.IP {
 	return nil
 }
 
-func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
+func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, config *DNSConfig, s *DNSSECSigner) {
 	m.Authoritative = true
 	shouldSign := false
 
@@ -53,22 +53,6 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 
 		log.Printf("Question %s", q.String())
 
-		soa := new(dns.SOA)
-		soa.Hdr = dns.RR_Header{
-			Name:   store.Config.Domain + ".",
-			Rrtype: dns.TypeSOA,
-			Class:  dns.ClassINET,
-			Ttl:    3600,
-		}
-
-		soa.Mbox = store.Config.DNSMNAME
-		soa.Ns = store.Config.DNSNS[0]
-		soa.Minttl = 3600
-		soa.Refresh = 1
-		soa.Retry = 1
-		soa.Serial = store.GetSerial()
-		soa.Expire = 1
-
 		switch q.Qtype {
 		case dns.TypeDNSKEY:
 			if ismain {
@@ -78,7 +62,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 		case dns.TypeNS:
 			if ismain {
 				log.Printf("A NS")
-				for _, ns := range store.Config.DNSNS {
+				for _, ns := range config.NS {
 					nsrr := new(dns.NS)
 					nsrr.Ns = ns
 					nsrr.Hdr = dns.RR_Header{
@@ -93,7 +77,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 		case dns.TypeSOA:
 			if ismain && q.Qtype == dns.TypeSOA {
 				log.Printf("A SOA")
-				m.Answer = append(m.Answer, soa)
+				m.Answer = append(m.Answer, s.GetSOA())
 			}
 		case dns.TypeAAAA:
 			log.Printf("Query for %s\n", q.Name)
@@ -124,6 +108,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 				m.Answer = append(m.Answer, rrsig)
 			}
 		} else {
+			soa := s.GetSOA()
 			m.Ns = append(m.Ns, soa)
 
 			if shouldSign {
@@ -164,14 +149,14 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 	}
 }
 
-func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg, store *Store, s *DNSSECSigner) {
+func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg, store *Store, config *DNSConfig, s *DNSSECSigner) {
 	m := new(dns.Msg)
 	m.SetReply(r)
 	m.Compress = false
 
 	switch r.Opcode {
 	case dns.OpcodeQuery:
-		parseDNSQuery(r, m, store, s)
+		parseDNSQuery(r, m, store, config, s)
 	}
 
 	err := w.WriteMsg(m)
@@ -185,12 +170,13 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg, store *Store, s *DNSSECS
 type DNSSECSigner struct {
 	d      dns.DNSKEY
 	signer crypto.Signer
-	config *Config
+	config *DNSConfig
+	store  *Store
 }
 
 func (s *DNSSECSigner) setupRecord() {
 	s.d.Hdr = dns.RR_Header{
-		Name:   s.config.Domain + ".",
+		Name:   s.store.Domain() + ".",
 		Rrtype: dns.TypeDNSKEY,
 		Class:  dns.ClassINET,
 		Ttl:    3600,
@@ -263,7 +249,7 @@ func (s *DNSSECSigner) GetDS() *dns.DS {
 	}
 
 	ds := s.d.ToDS(2)
-	ds.Hdr.Name = s.config.Domain + "."
+	ds.Hdr.Name = s.store.Domain() + "."
 	ds.Hdr.Ttl = uint32((time.Hour * 24 * 30).Seconds())
 
 	return ds
@@ -278,6 +264,26 @@ func (s *DNSSECSigner) GetDSStr() string {
 	return ""
 }
 
+func (s *DNSSECSigner) GetSOA() *dns.SOA {
+	soa := new(dns.SOA)
+	soa.Hdr = dns.RR_Header{
+		Name:   s.store.Domain() + ".",
+		Rrtype: dns.TypeSOA,
+		Class:  dns.ClassINET,
+		Ttl:    3600,
+	}
+
+	soa.Mbox = s.config.MNAME
+	soa.Ns = s.config.NS[0]
+	soa.Minttl = 3600
+	soa.Refresh = 1
+	soa.Retry = 1
+	soa.Serial = s.store.GetSerial()
+	soa.Expire = 1
+
+	return soa
+}
+
 func (s *DNSSECSigner) Sign(rr []dns.RR) (*dns.RRSIG, error) {
 	if s.signer == nil {
 		return nil, dns.ErrPrivKey
@@ -286,7 +292,7 @@ func (s *DNSSECSigner) Sign(rr []dns.RR) (*dns.RRSIG, error) {
 	rrsig := new(dns.RRSIG)
 	rrsig.Algorithm = s.d.Algorithm
 	rrsig.KeyTag = s.d.KeyTag()
-	rrsig.SignerName = s.config.Domain + "."
+	rrsig.SignerName = s.store.Domain() + "."
 	rrsig.Inception = uint32(time.Now().Unix() - 3600)
 	ttl := rr[0].Header().Ttl
 	rrsig.Expiration = uint32(time.Now().Add(time.Duration(float64(time.Second)*float64(ttl)) + (time.Second * 3600)).Unix())
@@ -298,10 +304,11 @@ func (s *DNSSECSigner) Sign(rr []dns.RR) (*dns.RRSIG, error) {
 	return rrsig, nil
 }
 
-func ProvideDNS(config *Config, store *Store, ctx context.Context, errChan chan<- error) {
+func ProvideDNS(config *DNSConfig, store *Store, ctx context.Context, errChan chan<- error) {
 	// prepare dnssec
 	s := &DNSSECSigner{
 		config: config,
+		store:  store,
 	}
 	if config.DNSSECKey == "" {
 		keyexport, err := s.Generate()
@@ -323,19 +330,19 @@ func ProvideDNS(config *Config, store *Store, ctx context.Context, errChan chan<
 
 	// attach request handler func
 	mux := dns.NewServeMux()
-	mux.HandleFunc(config.Domain+".", func(w dns.ResponseWriter, r *dns.Msg) {
-		handleDnsRequest(w, r, store, s)
+	mux.HandleFunc(store.Domain()+".", func(w dns.ResponseWriter, r *dns.Msg) {
+		handleDnsRequest(w, r, store, config, s)
 	})
 
 	// create servers
 	serverTcp := &dns.Server{
-		Addr:      config.DNSAddress + ":" + strconv.Itoa(int(config.DNSPort)),
+		Addr:      config.Address + ":" + strconv.Itoa(int(config.Port)),
 		Net:       "tcp",
 		Handler:   mux,
 		ReusePort: true,
 	}
 	serverUdp := &dns.Server{
-		Addr:      config.DNSAddress + ":" + strconv.Itoa(int(config.DNSPort)),
+		Addr:      config.Address + ":" + strconv.Itoa(int(config.Port)),
 		Net:       "udp",
 		Handler:   mux,
 		UDPSize:   65535,
@@ -343,7 +350,7 @@ func ProvideDNS(config *Config, store *Store, ctx context.Context, errChan chan<
 	}
 
 	go func() {
-		log.Printf("DNS (tcp) listens on %s:%d\n", config.DNSAddress, config.DNSPort)
+		log.Printf("DNS (tcp) listens on %s:%d\n", config.Address, config.Port)
 		err := serverTcp.ListenAndServe()
 		if err != nil {
 			errChan <- err
@@ -351,7 +358,7 @@ func ProvideDNS(config *Config, store *Store, ctx context.Context, errChan chan<
 	}()
 
 	go func() {
-		log.Printf("DNS (udp) listens on %s:%d\n", config.DNSAddress, config.DNSPort)
+		log.Printf("DNS (udp) listens on %s:%d\n", config.Address, config.Port)
 		err := serverUdp.ListenAndServe()
 		if err != nil {
 			errChan <- err

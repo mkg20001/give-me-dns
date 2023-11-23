@@ -17,7 +17,6 @@ import (
 )
 
 func resolveDomain(q dns.Question, store *Store) net.IP {
-	log.Printf("Query for %s\n", q.Name)
 	labelIndexes := dns.Split(q.Name)
 	if len(labelIndexes) < 2 {
 		return nil
@@ -56,7 +55,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 
 		soa := new(dns.SOA)
 		soa.Hdr = dns.RR_Header{
-			Name:   store.Config.Domain,
+			Name:   store.Config.Domain + ".",
 			Rrtype: dns.TypeSOA,
 			Class:  dns.ClassINET,
 			Ttl:    3600,
@@ -97,6 +96,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 				m.Answer = append(m.Answer, soa)
 			}
 		case dns.TypeAAAA:
+			log.Printf("Query for %s\n", q.Name)
 			ip := resolveDomain(q, store)
 			if ip != nil {
 				r := new(dns.AAAA)
@@ -174,7 +174,12 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg, store *Store, s *DNSSECS
 		parseDNSQuery(r, m, store, s)
 	}
 
-	w.WriteMsg(m)
+	err := w.WriteMsg(m)
+	if err != nil {
+		log.Printf("RESPONSE WRITING ERROR: %s", err)
+		log.Printf("INvALID RESPONSE:\n%s", m.String())
+		return
+	}
 }
 
 type DNSSECSigner struct {

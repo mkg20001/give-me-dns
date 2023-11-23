@@ -30,5 +30,5 @@ func ProvideWordlistID() (*WordlistID, error) {
 }
 
 func (p *WordlistID) GetID() (string, error) {
-	return p.Wordlist[rand.Int()%len(p.Wordlist)], nil
+	return p.Wordlist[rand.Int()%len(p.Wordlist)-2], nil
 }

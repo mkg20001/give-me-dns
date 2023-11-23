@@ -9,11 +9,32 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/miekg/dns"
 	"log"
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
+
+func resolveDomain(q dns.Question, store *Store) net.IP {
+	log.Printf("Query for %s\n", q.Name)
+	labelIndexes := dns.Split(q.Name)
+	if len(labelIndexes) < 2 {
+		return nil
+	}
+	lastBlock := strings.ToLower(q.Name)[labelIndexes[0] : labelIndexes[1]-1]
+	ip, err := store.ResolveEntry(lastBlock)
+	if err != nil {
+		sentry.CaptureException(err)
+		log.Printf("Failed to resolve: %s", err)
+		return nil
+	}
+	if ip != nil {
+		return ip
+	}
+
+	return nil
+}
 
 func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 	m.Authoritative = true
@@ -49,6 +70,34 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 		soa.Serial = store.GetSerial()
 		soa.Expire = 1
 
+		var ip net.IP
+
+		log.Printf("Query for %s\n", q.Name)
+		labelIndexes := dns.Split(q.Name)
+		if len(labelIndexes) < 2 {
+			return
+		}
+		lastBlock := strings.ToLower(q.Name)[labelIndexes[0] : labelIndexes[1]-1]
+		ip, err := store.ResolveEntry(lastBlock)
+		if err != nil {
+			sentry.CaptureException(err)
+			log.Printf("Failed to resolve: %s", err)
+			return
+		}
+		if ip != nil {
+			r := new(dns.AAAA)
+			r.Hdr = dns.RR_Header{
+				Name:   q.Name,
+				Rrtype: dns.TypeAAAA,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(store.Config.TTL.Seconds()),
+			}
+			r.AAAA = ip
+
+			log.Printf("Query for %s - Resolved %s\n", q.Name, ip)
+			m.Answer = append(m.Answer, r)
+		}
+
 		switch q.Qtype {
 		case dns.TypeDNSKEY:
 			if ismain {
@@ -76,18 +125,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 				m.Answer = append(m.Answer, soa)
 			}
 		case dns.TypeAAAA:
-			log.Printf("Query for %s\n", q.Name)
-			labelIndexes := dns.Split(q.Name)
-			if len(labelIndexes) < 2 {
-				return
-			}
-			lastBlock := strings.ToLower(q.Name)[labelIndexes[0] : labelIndexes[1]-1]
-			ip, err := store.ResolveEntry(lastBlock)
-			if err != nil {
-				sentry.CaptureException(err)
-				log.Printf("Failed to resolve: %s", err)
-				return
-			}
+			ip = resolveDomain(q, store)
 			if ip != nil {
 				r := new(dns.AAAA)
 				r.Hdr = dns.RR_Header{
@@ -160,6 +198,11 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 					return
 				}
 				m.Ns = append(m.Ns, rrsig2)
+			} else {
+				ip = resolveDomain(q, store)
+				if !ismain && ip == nil {
+					m.Rcode = dns.RcodeNameError
+				}
 			}
 		}
 	}

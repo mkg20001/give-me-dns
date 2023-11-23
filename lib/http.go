@@ -115,8 +115,21 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		switch request.Method {
-		case "GET":
+		if request.Method == "POST" {
+			ip, err := getIP(writer, request)
+			if err != nil {
+				writer.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			_, _, err = store.AddEntry(ip)
+			if err != nil {
+				writer.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+
+		if request.Method == "GET" || request.Method == "POST" {
 			writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 			info, err := getInfo(writer, request, store)
 			if err != nil {
@@ -131,45 +144,12 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 					OK:  true,
 				}))
 			}
-		case "POST":
-			ip, err := getIP(writer, request)
-			if err != nil {
-				writer.WriteHeader(http.StatusBadRequest)
-				return
-			}
-
-			_, _, err = store.AddEntry(ip)
-			if err != nil {
-				writer.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			// switch to GET
-			http.Redirect(writer, request, "/", http.StatusSeeOther)
-		default:
+		} else {
 			writer.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	})
 	mux.HandleFunc("/json", func(writer http.ResponseWriter, request *http.Request) {
-		get := func() {
-			info, err := getInfo(writer, request, store)
-			if err != nil {
-				jsonResponse(JSONReply{
-					Err: FailedToGetInfo,
-				}, writer)
-				return
-			}
-
-			jsonResponse(JSONReply{
-				OK:  true,
-				Res: info,
-			}, writer)
-		}
-
-		switch request.Method {
-		case "GET":
-			get()
-		case "POST":
+		if request.Method == "POST" {
 			ip, err := getIP(writer, request)
 			if err != nil {
 				writer.WriteHeader(http.StatusBadRequest)
@@ -187,9 +167,22 @@ func ProvideHTTP(config *Config, store *Store, ctx context.Context, errChan chan
 				}, writer)
 				return
 			}
+		}
 
-			get()
-		default:
+		if request.Method == "GET" || request.Method == "POST" {
+			info, err := getInfo(writer, request, store)
+			if err != nil {
+				jsonResponse(JSONReply{
+					Err: FailedToGetInfo,
+				}, writer)
+				return
+			}
+
+			jsonResponse(JSONReply{
+				OK:  true,
+				Res: info,
+			}, writer)
+		} else {
 			writer.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	})

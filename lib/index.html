@@ -1,3 +1,10 @@
+<style>
+    cmd {
+        background: #cfcfcf;
+        border-radius: 4px;
+        padding: 1px 2px;
+    }
+</style>
 <tt>
     <h1>give-me-dns.net</h1>
     You have IPv6, want to connect to some device and your router can't do mDNS or local domains?
@@ -6,10 +13,20 @@
     <br><br>
     Then give-me-dns.net is just right for you!
     <br><br>
-    Simply connect via a TCP client of your liking (like nc give-me-dns.net 9999) and you'll get a temporary DNS subdomain
+    Simply connect via a TCP client of your liking (like <cmd>nc give-me-dns.net 9999</cmd>) and you'll get a temporary DNS subdomain
     <br><br>
-    You can also aquire a DNS name via the browser
+
+    <h3>Extras</h3>
+    There is also a <a href="/json">JSON API</a> that you can use <cmd>curl -X POST https://give-me-dns.net/json</cmd>
     <br><br>
+    For static IPv6 suffixes see <a href="https://serverfault.com/questions/968641/configure-ipv6-address-on-interface-with-static-iid">this Serverfault post</a>
+    <br><br>
+    If you have multiple IPv6 Addresses: Either <cmd>nc -s IPV6 give-me-dns.net 9999</cmd> or <cmd>curl --interface IPV6 -X POST https://give-me-dns.net/json</cmd>
+    <br><br>
+    You can also acquire a DNS name via the browser
+    <br><br>
+
+    <h3>Current DNS name</h3>
     {{#OK}}
     DNS Name TTL: {{Res.TTL}}
     <br><br>
@@ -29,4 +46,8 @@
     {{^OK}}
     ({{Err}})
     {{/OK}}
+    <br><br>
+
+    <hr>
+    Made by <a href="https://github.com/mkg20001">mkg20001</a> - <a href="https://github.com/mkg20001/give-me-dns">Source</a>
 </tt>

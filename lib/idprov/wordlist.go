@@ -20,8 +20,8 @@ func ProvideWordlistID() (*WordlistID, error) {
 	}
 
 	wordlist := strings.Split(string(content), "\n")
-	if wordlist[len(wordlist)] == "" {
-		wordlist = wordlist[:len(wordlist)-1]
+	if wordlist[len(wordlist)-1] == "" {
+		wordlist = wordlist[:len(wordlist)-2]
 	}
 
 	return &WordlistID{
@@ -30,5 +30,5 @@ func ProvideWordlistID() (*WordlistID, error) {
 }
 
 func (p *WordlistID) GetID() (string, error) {
-	return p.Wordlist[rand.Int()%len(p.Wordlist)-2], nil
+	return p.Wordlist[rand.Int()%len(p.Wordlist)], nil
 }

@@ -55,12 +55,12 @@ in
     };
 
     networking.firewall.allowedUDPPorts = [
-      cfg.settings.dns_port
+      cfg.settings.dns.port
     ];
 
     networking.firewall.allowedTCPPorts = [
-      cfg.settings.dns_port
-      cfg.settings.net_port
+      cfg.settings.dns.port
+      cfg.settings.net.port
     ];
   };
 }

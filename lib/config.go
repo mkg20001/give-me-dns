@@ -13,6 +13,22 @@ type Config struct {
 	DNS   DNSConfig   `yaml:"dns"`
 	Net   NetConfig   `yaml:"net"`
 	HTTP  HTTPConfig  `yaml:"http"`
+
+	Provider ProviderConfig `yaml:"provider"`
+}
+
+type ProviderConfig struct {
+	PWordlistID PWordlistIDConfig `yaml:"wordlist"`
+	PRandomID   PRandomIDConfig   `yaml:"random"`
+}
+
+type PRandomIDConfig struct {
+	Enable bool  `yaml:"enable"`
+	IDLen  int16 `yaml:"id_len"`
+}
+
+type PWordlistIDConfig struct {
+	Enable bool `yaml:"enable"`
 }
 
 type DNSConfig struct {
@@ -37,7 +53,6 @@ type HTTPConfig struct {
 type StoreConfig struct {
 	Domain string        `yaml:"domain"`
 	File   string        `yaml:"file"`
-	IDLen  int16         `yaml:"idlen"`
 	TTL    time.Duration `yaml:"ttl"`
 }
 

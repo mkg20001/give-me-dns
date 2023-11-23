@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/getsentry/sentry-go"
 	"github.com/mkg20001/give-me-dns/lib"
+	"github.com/mkg20001/give-me-dns/lib/idprov"
 	"log"
 	"time"
 )
@@ -26,7 +27,21 @@ func Init(config *lib.Config, _ctx context.Context) error {
 
 	errChan := make(chan error)
 
-	err, cleanStore, store := lib.ProvideStore(&config.Store)
+	var idProv []idprov.IDProv
+
+	if config.Provider.PWordlistID.Enable {
+		wordlist, err := idprov.ProvideWordlistID()
+		if err != nil {
+			return err
+		}
+		idProv = append(idProv, wordlist)
+	}
+
+	if config.Provider.PRandomID.Enable {
+		idProv = append(idProv, idprov.ProvideRandomID(config.Provider.PRandomID.IDLen))
+	}
+
+	err, cleanStore, store := lib.ProvideStore(&config.Store, idProv)
 	if err != nil {
 		cancel(err)
 		sentry.CaptureException(err)

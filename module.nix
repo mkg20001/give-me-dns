@@ -24,7 +24,6 @@ in
         store = {
           domain = "6dns.me";
           ttl = "48h";
-          idlen = 3;
           file = "/var/lib/give-me-dns/db";
         };
         dns = {
@@ -37,6 +36,11 @@ in
         };
         net.port = 9999;
         http.port = 8053;
+        provider.wordlist.enable = true;
+        provider.random = {
+          enable = true;
+          id_len = 3;
+        };
       };
     };
 

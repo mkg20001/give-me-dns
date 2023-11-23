@@ -1,7 +1,6 @@
 store:
   domain: give-me-dns.net
   ttl: 48h
-  idlen: 5
   file: /tmp/give-me-dns
 dns:
   port: 5354
@@ -14,3 +13,9 @@ net:
   port: 9999
 http:
   port: 8053
+provider:
+  wordlist:
+    enable: true
+  random:
+    enable: true
+    id_len: 3

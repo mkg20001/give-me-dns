@@ -3,8 +3,9 @@ package lib
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/getsentry/sentry-go"
-	"github.com/google/uuid"
+	"github.com/mkg20001/give-me-dns/lib/idprov"
 	bolt "go.etcd.io/bbolt"
 	"net"
 	"sync"
@@ -23,12 +24,14 @@ type Store struct {
 	openLock   sync.Mutex
 	openCancel context.CancelFunc
 	Config     *StoreConfig
+	providers  []idprov.IDProv
 }
 
-func ProvideStore(config *StoreConfig) (error, func() error, *Store) {
+func ProvideStore(config *StoreConfig, providers []idprov.IDProv) (error, func() error, *Store) {
 	store := &Store{
-		Config: config,
-		file:   config.File,
+		Config:    config,
+		file:      config.File,
+		providers: providers,
 	}
 	err := store.Open()
 	if err != nil {
@@ -38,15 +41,6 @@ func ProvideStore(config *StoreConfig) (error, func() error, *Store) {
 	return nil, func() error {
 		return store.Close()
 	}, store
-}
-
-func genID(l int16) (string, error) {
-	id, err := uuid.NewUUID()
-	if err != nil {
-		return "", err
-	}
-
-	return id.String()[0:l], nil
 }
 
 func (s *Store) Domain() string {
@@ -210,9 +204,16 @@ func (s *Store) AddEntry(ipaddr net.IP) (Entry, string, error) {
 		bIP := tx.Bucket([]byte("dns4ip"))
 
 		idByte := bIP.Get(ipaddr)
+		provId := -1
+		maxTries := 50
 		if idByte == nil {
 		genID:
-			id, err := genID(s.Config.IDLen)
+			provId = (provId + 1) % len(s.providers)
+			maxTries = maxTries - 1
+			if maxTries == 0 {
+				return errors.New("could not find any free id")
+			}
+			id, err := s.providers[provId].GetID()
 			if err != nil {
 				return err
 			}

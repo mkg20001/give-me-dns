@@ -27,7 +27,6 @@ func (s *GDNSTestSuite) SetupSuite() {
 				Domain: "give-me-dns.net",
 				File:   "/tmp/" + uuid.Must(uuid.NewUUID()).String(),
 				TTL:    48 * time.Hour,
-				IDLen:  5,
 			},
 			DNS: lib.DNSConfig{
 				Port:  5354,
@@ -39,6 +38,15 @@ func (s *GDNSTestSuite) SetupSuite() {
 			},
 			HTTP: lib.HTTPConfig{
 				Port: 8053,
+			},
+			Provider: lib.ProviderConfig{
+				PWordlistID: lib.PWordlistIDConfig{
+					Enable: false,
+				},
+				PRandomID: lib.PRandomIDConfig{
+					Enable: true,
+					IDLen:  5,
+				},
 			},
 		}, ctx)
 		if err != nil {

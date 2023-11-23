@@ -75,40 +75,36 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 					m.Answer = append(m.Answer, nsrr)
 				}
 			}
-		case dns.TypeAAAA:
 		case dns.TypeSOA:
 			if ismain && q.Qtype == dns.TypeSOA {
+				log.Printf("A SOA")
 				m.Answer = append(m.Answer, soa)
-			} else {
-				log.Printf("Query for %s\n", q.Name)
-				labelIndexes := dns.Split(q.Name)
-				if len(labelIndexes) < 2 {
-					return
+			}
+		case dns.TypeAAAA:
+			log.Printf("Query for %s\n", q.Name)
+			labelIndexes := dns.Split(q.Name)
+			if len(labelIndexes) < 2 {
+				return
+			}
+			lastBlock := strings.ToLower(q.Name)[labelIndexes[0] : labelIndexes[1]-1]
+			ip, err := store.ResolveEntry(lastBlock)
+			if err != nil {
+				sentry.CaptureException(err)
+				log.Printf("Failed to resolve: %s", err)
+				return
+			}
+			if ip != nil {
+				r := new(dns.AAAA)
+				r.Hdr = dns.RR_Header{
+					Name:   q.Name,
+					Rrtype: dns.TypeAAAA,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(store.Config.TTL.Seconds()),
 				}
-				lastBlock := strings.ToLower(q.Name)[labelIndexes[0] : labelIndexes[1]-1]
-				ip, err := store.ResolveEntry(lastBlock)
-				if err != nil {
-					sentry.CaptureException(err)
-					log.Printf("Failed to resolve: %s", err)
-					return
-				}
-				if ip != nil {
-					if q.Qtype == dns.TypeAAAA {
-						r := new(dns.AAAA)
-						r.Hdr = dns.RR_Header{
-							Name:   q.Name,
-							Rrtype: dns.TypeAAAA,
-							Class:  dns.ClassINET,
-							Ttl:    uint32(store.Config.TTL.Seconds()),
-						}
-						r.AAAA = ip
+				r.AAAA = ip
 
-						log.Printf("Query for %s - Resolved %s\n", q.Name, ip)
-						m.Answer = append(m.Answer, r)
-					} else {
-						m.Answer = append(m.Answer, soa)
-					}
-				}
+				log.Printf("Query for %s - Resolved %s\n", q.Name, ip)
+				m.Answer = append(m.Answer, r)
 			}
 		}
 

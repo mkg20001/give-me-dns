@@ -35,7 +35,7 @@ func parseDNSQuery(r *dns.Msg, m *dns.Msg, store *Store, s *DNSSECSigner) {
 
 		soa := new(dns.SOA)
 		soa.Hdr = dns.RR_Header{
-			Name:   q.Name,
+			Name:   store.Config.Domain,
 			Rrtype: dns.TypeSOA,
 			Class:  dns.ClassINET,
 			Ttl:    3600,
